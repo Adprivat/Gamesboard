@@ -212,8 +212,20 @@
         window.addEventListener('load', function() {
             log('Extension loaded');
             determineBaseUrl();
-            initializeTwitch();
-            loadGames();
+            
+            // Überprüfen, ob wir im Pop-Out sind
+            const isPopout = window.location.pathname.includes('panel.html');
+            log('Is popout:', isPopout);
+
+            // Initialisiere Twitch nur, wenn wir nicht im Pop-Out sind
+            if (!isPopout) {
+                initializeTwitch();
+            } else {
+                // Im Pop-Out direkt die Spiele laden
+                userId = new URLSearchParams(window.location.search).get('userId') || 'test-user';
+                loadGames();
+            }
+            
             initializeSortingEvents();
         });
 
@@ -254,6 +266,10 @@
                     // Nach erfolgreicher Autorisierung Spiele laden
                     determineBaseUrl();
                     loadGames();
+
+                    // Pop-Out-Link aktualisieren
+                    const popoutUrl = `${baseUrl}/panel.html?userId=${userId}`;
+                    window.Twitch.ext.actions.requestPopout(popoutUrl);
                 });
 
                 window.Twitch.ext.onError(function(err) {

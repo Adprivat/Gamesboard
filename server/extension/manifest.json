@@ -16,11 +16,14 @@
         "panel": {
             "viewerUrl": "panel.html",
             "height": 500,
-            "canLinkExternalContent": false
+            "canLinkExternalContent": true
         },
         "config": {
             "viewerUrl": "config.html",
-            "canLinkExternalContent": false
+            "canLinkExternalContent": true
         }
-    }
+    },
+    "permissions": [
+        "viewer:read"
+    ]
 } 
