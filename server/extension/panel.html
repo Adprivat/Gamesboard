@@ -189,7 +189,10 @@
 
         // Determine base URL
         function determineBaseUrl() {
-            if (window.location.hostname.includes('twitch.tv')) {
+            if (window.location.hostname.includes('railway.app')) {
+                baseUrl = 'https://gamesboard-production.up.railway.app';
+                log('Using production URL:', baseUrl);
+            } else if (window.location.hostname.includes('twitch.tv')) {
                 baseUrl = 'https://gamesboard-production.up.railway.app';
                 log('Using production URL:', baseUrl);
             } else {
@@ -352,7 +355,12 @@
         const socket = io(baseUrl, {
             transports: ['websocket'],
             secure: true,
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            withCredentials: true,
+            cors: {
+                origin: "*",
+                methods: ["GET", "POST"]
+            }
         });
 
         socket.on('connect', () => {

@@ -18,11 +18,13 @@ app.use(cors({
         'https://*.ext-twitch.tv',
         'https://*.twitch.tv',
         'https://*.railway.app',
-        'https://gamesboard-production.up.railway.app'
+        'https://gamesboard-production.up.railway.app',
+        'https://gamesboard-production-up.railway.app'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
