@@ -388,7 +388,24 @@
         // Listen for admin updates
         socket.on('adminUpdate', (data) => {
             log('Admin update received:', data);
-            loadGames();
+            switch(data.type) {
+                case 'gameUpdate':
+                case 'gameAdded':
+                case 'gameDeleted':
+                    games = data.games;
+                    renderGames();
+                    break;
+                case 'settingsUpdate':
+                    // Update vote settings
+                    log('Vote settings updated:', data.settings);
+                    break;
+                case 'twitchSettingsUpdate':
+                    // Update Twitch settings
+                    log('Twitch settings updated:', data.settings);
+                    break;
+                default:
+                    loadGames();
+            }
         });
 
         // Prüfen, ob bereits heute abgestimmt wurde

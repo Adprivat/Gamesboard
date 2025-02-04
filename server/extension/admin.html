@@ -281,13 +281,13 @@
 
         // Vote-Einstellungen speichern
         async function saveVoteSettings() {
-            const settings = {
-                voteCooldown: document.getElementById('voteCooldown').value,
-                subMultiplier: document.getElementById('subMultiplier').value,
-                modMultiplier: document.getElementById('modMultiplier').value
-            };
-
             try {
+                const settings = {
+                    voteCooldown: parseInt(document.getElementById('voteCooldown').value),
+                    subMultiplier: parseInt(document.getElementById('subMultiplier').value),
+                    modMultiplier: parseInt(document.getElementById('modMultiplier').value)
+                };
+
                 const response = await fetch(`${baseUrl}/settings/vote`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -296,21 +296,22 @@
                 
                 if (response.ok) {
                     showSuccess('Vote settings saved');
+                    socket.emit('adminUpdate', { type: 'settingsUpdate', settings });
                 }
             } catch (error) {
-                showError('Error saving vote settings');
+                showError('Error saving vote settings: ' + error.message);
             }
         }
 
         // Twitch-Einstellungen speichern
         async function saveTwitchSettings() {
-            const settings = {
-                channelName: document.getElementById('channelName').value,
-                oauthToken: document.getElementById('oauthToken').value,
-                voteCommand: document.getElementById('voteCommand').value
-            };
-
             try {
+                const settings = {
+                    channelName: document.getElementById('channelName').value,
+                    oauthToken: document.getElementById('oauthToken').value,
+                    voteCommand: document.getElementById('voteCommand').value
+                };
+
                 const response = await fetch(`${baseUrl}/settings/twitch`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -319,9 +320,10 @@
                 
                 if (response.ok) {
                     showSuccess('Twitch settings saved');
+                    socket.emit('adminUpdate', { type: 'twitchSettingsUpdate', settings });
                 }
             } catch (error) {
-                showError('Error saving Twitch settings');
+                showError('Error saving Twitch settings: ' + error.message);
             }
         }
 
@@ -365,31 +367,39 @@
 
         // Edit game
         async function editGame(oldName) {
-            const game = games.find(g => g.name === oldName);
-            if (!game) return;
-
-            const newName = prompt('Enter new name for ' + oldName + ' (leave empty to keep current name)', oldName);
-            if (newName === null) return; // User cancelled
-
-            const newVotes = prompt('Enter new vote count (leave empty to keep current votes)', game.votes);
-            if (newVotes === null) return; // User cancelled
-
             try {
+                const newName = prompt('Enter new name for ' + oldName + ' (leave empty to keep current name)', oldName);
+                if (newName === null) return; // User cancelled
+
+                const gameToEdit = games.find(g => g.name === oldName);
+                if (!gameToEdit) {
+                    showError('Game not found');
+                    return;
+                }
+
+                const newVotes = prompt('Enter new vote count (leave empty to keep current votes)', gameToEdit.votes);
+                if (newVotes === null) return; // User cancelled
+
                 const response = await fetch(`${baseUrl}/games/${encodeURIComponent(oldName)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         name: newName || oldName,
-                        votes: newVotes === '' ? game.votes : parseInt(newVotes)
+                        votes: newVotes === '' ? gameToEdit.votes : parseInt(newVotes)
                     })
                 });
                 
                 if (response.ok) {
-                    loadGames();
+                    const result = await response.json();
+                    games = result.games;
+                    renderGames(games);
                     showSuccess('Game updated');
+                    socket.emit('adminUpdate', { type: 'gameUpdate', games });
+                } else {
+                    showError('Error updating game');
                 }
             } catch (error) {
-                showError('Error updating game');
+                showError('Error updating game: ' + error.message);
             }
         }
 
