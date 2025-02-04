@@ -227,23 +227,27 @@
             rejectUnauthorized: false
         });
 
+        // Globale Variable für Spiele
+        let games = [];
+
         // Spiele laden
         async function loadGames() {
             try {
                 const response = await fetch(`${baseUrl}/games`);
-                const games = await response.json();
+                const data = await response.json();
+                games = Array.isArray(data) ? data : (data.games || []);
                 renderGames(games);
             } catch (error) {
-                showError('Error loading games');
+                showError('Error loading games: ' + error.message);
             }
         }
 
         // Spiele anzeigen
-        function renderGames(games) {
+        function renderGames(gamesList) {
             const gameList = document.getElementById('gameList');
             gameList.innerHTML = '';
             
-            games.forEach(game => {
+            gamesList.forEach(game => {
                 const gameItem = document.createElement('div');
                 gameItem.className = 'game-item';
                 gameItem.innerHTML = `
@@ -368,35 +372,36 @@
         // Edit game
         async function editGame(oldName) {
             try {
-                const newName = prompt('Enter new name for ' + oldName + ' (leave empty to keep current name)', oldName);
-                if (newName === null) return; // User cancelled
-
                 const gameToEdit = games.find(g => g.name === oldName);
                 if (!gameToEdit) {
                     showError('Game not found');
                     return;
                 }
 
-                const newVotes = prompt('Enter new vote count (leave empty to keep current votes)', gameToEdit.votes);
+                const newName = prompt('Enter new name for ' + oldName, oldName);
+                if (newName === null) return; // User cancelled
+
+                const currentVotes = gameToEdit.votes || 0;
+                const newVotes = prompt('Enter new vote count', currentVotes);
                 if (newVotes === null) return; // User cancelled
 
                 const response = await fetch(`${baseUrl}/games/${encodeURIComponent(oldName)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        name: newName || oldName,
-                        votes: newVotes === '' ? gameToEdit.votes : parseInt(newVotes)
+                        name: newName.trim(),
+                        votes: parseInt(newVotes) || 0
                     })
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
+                const result = await response.json();
+                if (result.success) {
                     games = result.games;
                     renderGames(games);
-                    showSuccess('Game updated');
+                    showSuccess('Game updated successfully');
                     socket.emit('adminUpdate', { type: 'gameUpdate', games });
                 } else {
-                    showError('Error updating game');
+                    showError(result.error || 'Error updating game');
                 }
             } catch (error) {
                 showError('Error updating game: ' + error.message);
