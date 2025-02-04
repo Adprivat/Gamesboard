@@ -1,0 +1,7 @@
+{
+  "vote": {
+    "voteCooldown": "24",
+    "subMultiplier": "1",
+    "modMultiplier": "1"
+  }
+}

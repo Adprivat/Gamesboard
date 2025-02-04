@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GamesBoard Konfiguration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #18181B;
+            color: #EFEFF1;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #9147FF;
+            margin-bottom: 20px;
+        }
+        
+        .config-section {
+            background-color: #1F1F23;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .config-item {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #EFEFF1;
+        }
+        
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #303036;
+            background-color: #18181B;
+            color: #EFEFF1;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #9147FF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        button:hover {
+            background-color: #772CE8;
+        }
+        
+        .success-message {
+            color: #00FF00;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GamesBoard Konfiguration</h1>
+        
+        <div class="config-section">
+            <div class="config-item">
+                <label for="voteMultiplier">Abstimmungs-Multiplikator für Subscriber:</label>
+                <input type="number" id="voteMultiplier" min="1" max="5" value="2">
+            </div>
+            
+            <div class="config-item">
+                <label for="voteCooldown">Abstimmungs-Cooldown (Stunden):</label>
+                <input type="number" id="voteCooldown" min="1" max="24" value="24">
+            </div>
+            
+            <div class="config-item">
+                <label for="voteCommand">Abstimmungs-Befehl:</label>
+                <input type="text" id="voteCommand" value="!vote">
+            </div>
+            
+            <button onclick="saveConfig()">Speichern</button>
+            <div id="successMessage" class="success-message">Einstellungen wurden gespeichert!</div>
+        </div>
+    </div>
+
+    <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+    <script>
+        let twitchExt = window.Twitch.ext;
+        let channelId;
+
+        // Twitch Extension initialisieren
+        twitchExt.onAuthorized(function(auth) {
+            channelId = auth.channelId;
+            loadConfig();
+        });
+
+        // Konfiguration laden
+        async function loadConfig() {
+            try {
+                const config = await twitchExt.configuration.broadcaster.content;
+                if (config) {
+                    const settings = JSON.parse(config);
+                    document.getElementById('voteMultiplier').value = settings.voteMultiplier || 2;
+                    document.getElementById('voteCooldown').value = settings.voteCooldown || 24;
+                    document.getElementById('voteCommand').value = settings.voteCommand || '!vote';
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Konfiguration:', error);
+            }
+        }
+
+        // Konfiguration speichern
+        async function saveConfig() {
+            const config = {
+                voteMultiplier: parseInt(document.getElementById('voteMultiplier').value),
+                voteCooldown: parseInt(document.getElementById('voteCooldown').value),
+                voteCommand: document.getElementById('voteCommand').value
+            };
+
+            try {
+                await twitchExt.configuration.set('broadcaster', '1', JSON.stringify(config));
+                const successMessage = document.getElementById('successMessage');
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Fehler beim Speichern der Konfiguration:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

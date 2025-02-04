@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GamesBoard Extension</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #18181B;
+            color: #EFEFF1;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            margin-bottom: 15px;
+        }
+
+        .view-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tab-button {
+            background-color: #1F1F23;
+            color: #EFEFF1;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background-color: #9147FF;
+        }
+
+        #sortOptions {
+            background-color: #1F1F23;
+            color: #EFEFF1;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .game-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .game-item {
+            background-color: #1F1F23;
+            border-radius: 4px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .game-name {
+            font-weight: bold;
+        }
+        
+        .game-votes {
+            background-color: #9147FF;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+        
+        .vote-button {
+            background-color: #9147FF;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        
+        .vote-button:hover {
+            background-color: #772CE8;
+        }
+        
+        .vote-button:disabled {
+            background-color: #392E5C;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 20px;
+            color: #9147FF;
+        }
+
+        .error-message {
+            color: #ff4444;
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(255, 68, 68, 0.1);
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+        
+        .debug-info {
+            font-size: 12px;
+            color: #666;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            margin-top: 20px;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="errorContainer"></div>
+        <div class="controls">
+            <div class="view-controls">
+                <button id="tab-alphabetical" class="tab-button active">Alphabetical</button>
+                <button id="tab-leaderboard" class="tab-button">Leaderboard</button>
+                <select id="sortOptions" class="hidden">
+                    <option value="most">Most Votes</option>
+                    <option value="least">Least Votes</option>
+                    <option value="az">A-Z</option>
+                    <option value="za">Z-A</option>
+                </select>
+            </div>
+        </div>
+        <div id="gamesList" class="game-list">
+            <div id="status" class="status-message">Connecting to server...</div>
+        </div>
+        <div id="debugInfo" class="debug-info"></div>
+    </div>
+
+    <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    
+    <script>
+        let twitchExt = window.Twitch.ext;
+        let userId = null;
+        let games = [];
+        let baseUrl = 'https://localhost:8081';
+        let currentTab = 'alphabetical';
+        let currentSort = 'az';
+        
+        // Debug-Logging-Funktion
+        function log(message, data = null) {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const logMessage = `[${timestamp}] ${message}`;
+            console.log(logMessage, data);
+            debugInfo.innerHTML += `<div>${logMessage}${data ? ': ' + JSON.stringify(data) : ''}</div>`;
+        }
+
+        // Sortier-Funktion
+        function sortGames(gamesList) {
+            if (currentTab === 'alphabetical') {
+                return gamesList.sort((a, b) => a.name.localeCompare(b.name));
+            }
+            
+            switch(currentSort) {
+                case 'most':
+                    return gamesList.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+                case 'least':
+                    return gamesList.sort((a, b) => (a.votes || 0) - (b.votes || 0));
+                case 'az':
+                    return gamesList.sort((a, b) => a.name.localeCompare(b.name));
+                case 'za':
+                    return gamesList.sort((a, b) => b.name.localeCompare(a.name));
+                default:
+                    return gamesList.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+            }
+        }
+
+        // Bestimme die Basis-URL
+        function determineBaseUrl() {
+            if (window.location.hostname.includes('twitch.tv')) {
+                baseUrl = 'https://discounted-careful-distance-obtained.trycloudflare.com';
+                log('Using Twitch URL:', baseUrl);
+            } else {
+                baseUrl = 'https://localhost:8081';
+                log('Using local URL:', baseUrl);
+            }
+        }
+
+        // Fehleranzeige-Funktion
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+            log('Error:', message);
+        }
+
+        // Initialisierung
+        window.addEventListener('load', function() {
+            log('Extension loaded');
+            determineBaseUrl();
+            initializeTwitch();
+            loadGames();
+            initializeSortingEvents();
+        });
+
+        // Initialisiere Sortierungs-Events
+        function initializeSortingEvents() {
+            document.getElementById('tab-alphabetical').addEventListener('click', () => {
+                currentTab = 'alphabetical';
+                document.getElementById('tab-alphabetical').classList.add('active');
+                document.getElementById('tab-leaderboard').classList.remove('active');
+                document.getElementById('sortOptions').classList.add('hidden');
+                renderGames();
+            });
+
+            document.getElementById('tab-leaderboard').addEventListener('click', () => {
+                currentTab = 'leaderboard';
+                document.getElementById('tab-leaderboard').classList.add('active');
+                document.getElementById('tab-alphabetical').classList.remove('active');
+                document.getElementById('sortOptions').classList.remove('hidden');
+                currentSort = document.getElementById('sortOptions').value;
+                renderGames();
+            });
+
+            document.getElementById('sortOptions').addEventListener('change', (e) => {
+                if (currentTab === 'leaderboard') {
+                    currentSort = e.target.value;
+                    renderGames();
+                }
+            });
+        }
+
+        // Twitch-Initialisierung
+        function initializeTwitch() {
+            try {
+                log('Initializing Twitch Extension');
+                twitchExt.onAuthorized(function(auth) {
+                    log('Twitch authorization successful', auth);
+                    userId = auth.userId;
+                    loadGames();
+                });
+
+                twitchExt.onError(function(err) {
+                    log('Twitch Extension error (non-critical)', err);
+                    userId = 'test-user-' + Math.random().toString(36).substring(7);
+                    loadGames();
+                });
+
+                setTimeout(() => {
+                    if (!userId) {
+                        log('No Twitch authorization after timeout, using test user');
+                        userId = 'test-user-' + Math.random().toString(36).substring(7);
+                        loadGames();
+                    }
+                }, 2000);
+
+            } catch (error) {
+                log('Error during Twitch initialization (using test user)', error);
+                userId = 'test-user-' + Math.random().toString(36).substring(7);
+                loadGames();
+            }
+        }
+
+        // Load and display games
+        async function loadGames() {
+            try {
+                log('Loading games...');
+                const response = await fetch(`${baseUrl}/games`);
+                const data = await response.json();
+                games = Array.isArray(data) ? data : [];
+                log('Games loaded:', games);
+                renderGames();
+            } catch (error) {
+                showError('Error loading games: ' + error.message);
+            }
+        }
+
+        // Render games
+        function renderGames() {
+            const gamesList = document.getElementById('gamesList');
+            if (games.length === 0) {
+                gamesList.innerHTML = '<div class="status-message">No games available</div>';
+                return;
+            }
+
+            const sortedGames = sortGames([...games]);
+            
+            gamesList.innerHTML = '';
+            sortedGames.forEach(game => {
+                const gameElement = document.createElement('div');
+                gameElement.className = 'game-item';
+                gameElement.innerHTML = `
+                    <span class="game-name">${game.name}</span>
+                    <div>
+                        <span class="game-votes">${game.votes || 0} Votes</span>
+                        <button class="vote-button" onclick="vote('${game.name}')">Vote</button>
+                    </div>
+                `;
+                gamesList.appendChild(gameElement);
+            });
+        }
+
+        // Vote for a game
+        async function vote(gameName) {
+            try {
+                // Check if user has already voted today
+                if (hasVotedToday(userId)) {
+                    showError('You have already voted today. Please come back tomorrow!');
+                    return;
+                }
+
+                log('Voting for', gameName);
+                const response = await fetch(`${baseUrl}/vote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        game: gameName,
+                        user: userId || 'test-user'
+                    })
+                });
+                
+                const result = await response.json();
+                log('Vote result', result);
+                
+                if (result.success) {
+                    // Save vote record
+                    recordVote(userId);
+                    socket.emit('vote', { game: gameName, user: userId });
+                    loadGames();
+                } else {
+                    showError(result.message || 'Error while voting');
+                }
+            } catch (error) {
+                showError('Error while voting: ' + error.message);
+            }
+        }
+
+        // Socket.io connection
+        const socket = io('https://localhost:8081', {
+            transports: ['websocket'],
+            secure: true,
+            rejectUnauthorized: false
+        });
+
+        socket.on('connect', () => {
+            log('Connected to server');
+            socket.emit('test', { message: 'Hello Server!' });
+        });
+
+        socket.on('disconnect', () => {
+            log('Disconnected from server');
+        });
+
+        socket.on('error', (error) => {
+            log('Error: ' + error.message);
+        });
+
+        socket.on('test_response', (data) => {
+            log('Server response received', data);
+        });
+
+        socket.on('voteUpdate', (data) => {
+            log('Vote update received:', data);
+            loadGames();
+        });
+
+        // Listen for admin updates
+        socket.on('adminUpdate', (data) => {
+            log('Admin update received:', data);
+            loadGames();
+        });
+
+        // Prüfen, ob bereits heute abgestimmt wurde
+        function hasVotedToday(userId) {
+            const voteRecord = JSON.parse(localStorage.getItem('voteRecord') || '{}');
+            const lastVoteDate = voteRecord[userId];
+            if (!lastVoteDate) return false;
+            
+            const today = new Date().toISOString().split('T')[0];
+            return lastVoteDate === today;
+        }
+
+        // Vote-Record speichern
+        function recordVote(userId) {
+            const voteRecord = JSON.parse(localStorage.getItem('voteRecord') || '{}');
+            const today = new Date().toISOString().split('T')[0];
+            voteRecord[userId] = today;
+            localStorage.setItem('voteRecord', JSON.stringify(voteRecord));
+        }
+    </script>
+</body>
+</html> 

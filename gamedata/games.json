@@ -1,0 +1,20 @@
+{
+  "games": [
+    {
+      "name": "Minescraft",
+      "votes": 9
+    },
+    {
+      "name": "Fortnite",
+      "votes": 11
+    },
+    {
+      "name": "Among Us",
+      "votes": 12
+    },
+    {
+      "name": "Resident Evil",
+      "votes": 0
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Voting System</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Content Security Policy: Passe diese Einstellungen für die Produktion an -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://irc-ws.chat.twitch.tv wss://irc-ws.chat.twitch.tv; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self';">
+</head>
+<body>
+  <section id="controls">
+    <div class="left-controls">
+      <input type="text" id="searchInput" placeholder="Search for game">
+      <button id="addGameButton">+</button>
+    </div>
+    <div class="right-controls">
+      <div class="view-controls">
+        <button id="tab-alphabetical" class="tab-button active">Alphabetical</button>
+        <button id="tab-leaderboard" class="tab-button">Leaderboard</button>
+        <select id="sortOptions" class="hidden">
+          <option value="most">Most Voted</option>
+          <option value="least">Least Voted</option>
+          <option value="az">A-Z</option>
+          <option value="za">Z-A</option>
+        </select>
+      </div>
+      <div class="data-controls">
+        <button id="settingsButton" class="data-button">⚙️</button>
+      </div>
+    </div>
+  </section>
+  
+  <section id="gameList">
+    <!-- Game list will be inserted dynamically -->
+  </section>
+
+  <!-- Vote confirmation modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <p>Do you want to vote for this game?</p>
+      <button id="confirmVote">Yes</button>
+      <button id="cancelVote">No</button>
+    </div>
+  </div>
+
+  <!-- Add new game modal -->
+  <div id="addGameModal" class="modal hidden">
+    <div class="modal-content">
+      <p>Add New Game</p>
+      <input type="text" id="newGameName" placeholder="Game name">
+      <button id="confirmAddGame">Add</button>
+      <button id="cancelAddGame">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit points modal -->
+  <div id="editPointsModal" class="modal hidden">
+    <div class="modal-content">
+      <p>Edit Game</p>
+      <div class="edit-game-form">
+        <div class="input-group">
+          <label for="editGameName">Game Name:</label>
+          <input type="text" id="editGameName" placeholder="Game name">
+        </div>
+        <div class="input-group">
+          <label for="editPoints">Points:</label>
+          <input type="number" id="editPoints" placeholder="Points">
+        </div>
+      </div>
+      <button id="confirmEditPoints">Save</button>
+      <button id="cancelEditPoints">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content settings-content">
+      <h2>Settings</h2>
+      
+      <div class="settings-section">
+        <h3>Twitch Integration</h3>
+        <div class="setting-item">
+          <label for="channelName">Channel Name:</label>
+          <input type="text" id="channelName" placeholder="Your Twitch channel">
+        </div>
+        
+        <div class="setting-item">
+          <label for="twitchToken">OAuth Token:</label>
+          <input type="password" id="twitchToken" placeholder="oauth:...">
+          <button id="generateToken" class="small-button">Generate Token</button>
+        </div>
+
+        <div class="setting-item">
+          <label>Voting Settings:</label>
+          <div class="setting-item">
+            <label for="viewerMultiplier">Viewer Multiplier:</label>
+            <input type="number" id="viewerMultiplier" value="1" min="1" max="10">
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="subMultiplier">
+            <label for="subMultiplier">Enable Subscriber Multiplier</label>
+          </div>
+          <div class="sub-setting">
+            <label for="subPoints">Subscriber Points:</label>
+            <input type="number" id="subPoints" value="2" min="1" max="10">
+          </div>
+          <div class="setting-item">
+            <label for="globalMultiplier">Global Multiplier:</label>
+            <input type="number" id="globalMultiplier" value="1" min="1" max="10">
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label>Chat Commands:</label>
+          <div class="command-setting">
+            <label for="voteCommand">Vote Command:</label>
+            <input type="text" id="voteCommand" value="!vote" placeholder="e.g. !vote">
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Vote Management</h3>
+        <div class="setting-item data-management">
+          <button id="resetVoteLockButton" class="settings-button info-button">Reset Daily Vote Lock</button>
+        </div>
+        <p class="warning-text">Warning: This action cannot be undone!</p>
+      </div>
+
+      <div class="settings-section">
+        <h3>Data Management</h3>
+        <div class="setting-item data-management">
+          <button id="exportButton" class="settings-button">Export Games</button>
+          <button id="importButton" class="settings-button">Import Games</button>
+          <button id="openDataFolderButton" class="settings-button">Open Data Folder</button>
+          <input type="file" id="fileInput" accept=".json" class="hidden">
+        </div>
+        <p class="info-text">Data is stored in the 'gamedata' folder. Backups are created automatically.</p>
+      </div>
+
+      <div class="settings-section">
+        <h3>Theme Settings</h3>
+        <div class="setting-item">
+          <label>Colors</label>
+          <div class="theme-setting">
+            <label for="backgroundColor">Background Color:</label>
+            <input type="color" id="backgroundColor" value="#1a1a1a">
+          </div>
+          <div class="theme-setting">
+            <label for="textColor">Text Color:</label>
+            <input type="color" id="textColor" value="#ffffff">
+          </div>
+          <div class="theme-setting">
+            <label for="accentColor">Accent Color:</label>
+            <input type="color" id="accentColor" value="#2a2a2a">
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label>Typography</label>
+          <div class="theme-setting">
+            <label for="fontFamily">Font Family:</label>
+            <select id="fontFamily">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'Times New Roman', serif">Times New Roman</option>
+              <option value="'Courier New', monospace">Courier New</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+            </select>
+          </div>
+          <div class="theme-setting">
+            <label for="fontSize">Base Font Size (px):</label>
+            <input type="number" id="fontSize" value="14" min="10" max="24">
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label>Layout</label>
+          <div class="theme-setting">
+            <label for="itemSpacing">Item Spacing (px):</label>
+            <input type="number" id="itemSpacing" value="8" min="4" max="20">
+          </div>
+          <div class="theme-setting">
+            <label for="borderRadius">Border Radius (px):</label>
+            <input type="number" id="borderRadius" value="4" min="0" max="20">
+          </div>
+        </div>
+
+        <button id="resetTheme" class="settings-button">Reset to Default Theme</button>
+      </div>
+
+      <div class="button-group">
+        <button id="saveSettings">Save</button>
+        <button id="cancelSettings">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

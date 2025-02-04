@@ -1,0 +1,38 @@
+{
+    "manifest_version": 1,
+    "id": "gamesboard",
+    "version": "1.0.0",
+    "name": "GamesBoard",
+    "description": "Ein interaktives Abstimmungssystem für Spiele",
+    "author": "Your Name",
+    "support_email": "your.email@example.com",
+    "viewer_url": "https://localhost:8081/panel.html",
+    "config_url": "https://localhost:8081/config.html",
+    "panel_height": 300,
+    "permissions": [
+        "viewer:read"
+    ],
+    "bits_enabled": false,
+    "anchor": "panel",
+    "can_link_external_content": false,
+    "views": {
+        "panel": {
+            "viewerUrl": "https://localhost:8081/panel.html",
+            "height": 300,
+            "deltaX": 0,
+            "deltaY": 0
+        },
+        "config": {
+            "viewerUrl": "https://localhost:8081/config.html",
+            "height": 300
+        }
+    },
+    "asset_urls": [
+        "https://localhost:8081/icons/icon.svg"
+    ],
+    "icon_urls": {
+        "100x100": "https://localhost:8081/icons/icon-100.png",
+        "24x24": "https://localhost:8081/icons/icon-24.png",
+        "32x32": "https://localhost:8081/icons/icon-32.png"
+    }
+} 

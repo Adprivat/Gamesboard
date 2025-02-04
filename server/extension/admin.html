@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GamesBoard Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #18181B;
+            color: #EFEFF1;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: #1F1F23;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .main-content {
+            background: #1F1F23;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .nav-item {
+            padding: 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .nav-item:hover {
+            background: #2F2F35;
+        }
+        
+        .nav-item.active {
+            background: #9147FF;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 8px;
+            background: #2F2F35;
+            border: 1px solid #3F3F45;
+            color: #EFEFF1;
+            border-radius: 4px;
+        }
+        
+        button {
+            background: #9147FF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #772CE8;
+        }
+        
+        .game-list {
+            margin-top: 20px;
+        }
+        
+        .game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #2F2F35;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .game-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .success-message {
+            color: #00FF00;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 4px;
+        }
+        
+        .error-message {
+            color: #FF0000;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="nav-item active" data-section="games">🎮 Manage Games</div>
+            <div class="nav-item" data-section="voting">🎲 Vote Settings</div>
+            <div class="nav-item" data-section="twitch">📺 Twitch Integration</div>
+            <div class="nav-item" data-section="backup">💾 Backup & Export</div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Spiele verwalten -->
+            <div id="games" class="section active">
+                <h2>Manage Games</h2>
+                <div class="input-group">
+                    <label>Add New Game</label>
+                    <input type="text" id="newGameName" placeholder="Game name">
+                    <button onclick="addGame()">Add</button>
+                </div>
+                <div id="gameList" class="game-list">
+                    <!-- Games will be inserted dynamically -->
+                </div>
+            </div>
+            
+            <!-- Vote Settings -->
+            <div id="voting" class="section">
+                <h2>Vote Settings</h2>
+                <div class="input-group">
+                    <label>Vote Cooldown (hours)</label>
+                    <input type="number" id="voteCooldown" min="1" max="72" value="24">
+                </div>
+                <div class="input-group">
+                    <label>Subscriber Multiplier</label>
+                    <input type="number" id="subMultiplier" min="1" max="5" value="2">
+                </div>
+                <div class="input-group">
+                    <label>Mod Multiplier</label>
+                    <input type="number" id="modMultiplier" min="1" max="5" value="2">
+                </div>
+                <button onclick="saveVoteSettings()">Save Settings</button>
+            </div>
+            
+            <!-- Twitch Integration -->
+            <div id="twitch" class="section">
+                <h2>Twitch Integration</h2>
+                <div class="input-group">
+                    <label>Channel Name</label>
+                    <input type="text" id="channelName" placeholder="Your Twitch channel">
+                </div>
+                <div class="input-group">
+                    <label>OAuth Token</label>
+                    <input type="password" id="oauthToken" placeholder="oauth:...">
+                    <button onclick="window.open('https://twitchapps.com/tmi/')">Generate Token</button>
+                </div>
+                <div class="input-group">
+                    <label>Vote Command</label>
+                    <input type="text" id="voteCommand" value="!vote">
+                </div>
+                <button onclick="saveTwitchSettings()">Save Settings</button>
+            </div>
+            
+            <!-- Backup & Export -->
+            <div id="backup" class="section">
+                <h2>Backup & Export</h2>
+                <div class="input-group">
+                    <button onclick="exportData()">Export Data</button>
+                    <button onclick="document.getElementById('importFile').click()">Import Data</button>
+                    <input type="file" id="importFile" style="display: none" accept=".json" onchange="importData(event)">
+                </div>
+                <div class="input-group">
+                    <button onclick="resetVotes()">Reset Votes</button>
+                    <button onclick="createBackup()">Create Backup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                // Aktive Klasse entfernen
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                
+                // Neue Sektion aktivieren
+                item.classList.add('active');
+                document.getElementById(item.dataset.section).classList.add('active');
+            });
+        });
+
+        // Basis-URL
+        const baseUrl = 'https://localhost:8081';
+
+        // Spiele laden
+        async function loadGames() {
+            try {
+                const response = await fetch(`${baseUrl}/games`);
+                const games = await response.json();
+                renderGames(games);
+            } catch (error) {
+                showError('Error loading games');
+            }
+        }
+
+        // Spiele anzeigen
+        function renderGames(games) {
+            const gameList = document.getElementById('gameList');
+            gameList.innerHTML = '';
+            
+            games.forEach(game => {
+                const gameItem = document.createElement('div');
+                gameItem.className = 'game-item';
+                gameItem.innerHTML = `
+                    <span>${game.name} (${game.votes || 0} Votes)</span>
+                    <div class="game-actions">
+                        <button onclick="editGame('${game.name}')">Edit</button>
+                        <button onclick="deleteGame('${game.name}')">Delete</button>
+                    </div>
+                `;
+                gameList.appendChild(gameItem);
+            });
+        }
+
+        // Spiel hinzufügen
+        async function addGame() {
+            const name = document.getElementById('newGameName').value.trim();
+            if (!name) return;
+
+            try {
+                const response = await fetch(`${baseUrl}/games`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('newGameName').value = '';
+                    loadGames();
+                    showSuccess('Game added');
+                }
+            } catch (error) {
+                showError('Error adding game');
+            }
+        }
+
+        // Vote-Einstellungen speichern
+        async function saveVoteSettings() {
+            const settings = {
+                voteCooldown: document.getElementById('voteCooldown').value,
+                subMultiplier: document.getElementById('subMultiplier').value,
+                modMultiplier: document.getElementById('modMultiplier').value
+            };
+
+            try {
+                const response = await fetch(`${baseUrl}/settings/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    showSuccess('Vote settings saved');
+                }
+            } catch (error) {
+                showError('Error saving vote settings');
+            }
+        }
+
+        // Twitch-Einstellungen speichern
+        async function saveTwitchSettings() {
+            const settings = {
+                channelName: document.getElementById('channelName').value,
+                oauthToken: document.getElementById('oauthToken').value,
+                voteCommand: document.getElementById('voteCommand').value
+            };
+
+            try {
+                const response = await fetch(`${baseUrl}/settings/twitch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    showSuccess('Twitch settings saved');
+                }
+            } catch (error) {
+                showError('Error saving Twitch settings');
+            }
+        }
+
+        // Daten exportieren
+        async function exportData() {
+            try {
+                const response = await fetch(`${baseUrl}/export`);
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `gamesboard_export_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                showError('Error exporting data');
+            }
+        }
+
+        // Erfolgsmeldung anzeigen
+        function showSuccess(message) {
+            const div = document.createElement('div');
+            div.className = 'success-message';
+            div.textContent = message;
+            document.querySelector('.main-content').prepend(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        // Fehlermeldung anzeigen
+        function showError(message) {
+            const div = document.createElement('div');
+            div.className = 'error-message';
+            div.textContent = message;
+            document.querySelector('.main-content').prepend(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        // Edit game
+        async function editGame(oldName) {
+            const game = games.find(g => g.name === oldName);
+            if (!game) return;
+
+            const newName = prompt('Enter new name for ' + oldName + ' (leave empty to keep current name)', oldName);
+            if (newName === null) return; // User cancelled
+
+            const newVotes = prompt('Enter new vote count (leave empty to keep current votes)', game.votes);
+            if (newVotes === null) return; // User cancelled
+
+            try {
+                const response = await fetch(`${baseUrl}/games/${encodeURIComponent(oldName)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: newName || oldName,
+                        votes: newVotes === '' ? game.votes : parseInt(newVotes)
+                    })
+                });
+                
+                if (response.ok) {
+                    loadGames();
+                    showSuccess('Game updated');
+                }
+            } catch (error) {
+                showError('Error updating game');
+            }
+        }
+
+        // Delete game
+        async function deleteGame(name) {
+            if (!confirm('Are you sure you want to delete ' + name + '?')) return;
+
+            try {
+                const response = await fetch(`${baseUrl}/games/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadGames();
+                    showSuccess('Game deleted');
+                }
+            } catch (error) {
+                showError('Error deleting game');
+            }
+        }
+
+        // Import data
+        async function importData(event) {
+            try {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        const response = await fetch(`${baseUrl}/import`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        if (response.ok) {
+                            loadGames();
+                            showSuccess('Data imported successfully');
+                        }
+                    } catch (error) {
+                        showError('Error importing data: Invalid file format');
+                    }
+                };
+                reader.readAsText(file);
+            } catch (error) {
+                showError('Error importing data');
+            }
+        }
+
+        // Reset votes
+        async function resetVotes() {
+            if (!confirm('Are you sure you want to reset all votes? This cannot be undone!')) return;
+
+            try {
+                const response = await fetch(`${baseUrl}/reset-votes`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    loadGames();
+                    showSuccess('All votes have been reset');
+                }
+            } catch (error) {
+                showError('Error resetting votes');
+            }
+        }
+
+        // Create backup
+        async function createBackup() {
+            try {
+                const response = await fetch(`${baseUrl}/backup`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showSuccess('Backup created successfully');
+                }
+            } catch (error) {
+                showError('Error creating backup');
+            }
+        }
+
+        // Initial Spiele laden
+        loadGames();
+    </script>
+</body>
+</html> 
