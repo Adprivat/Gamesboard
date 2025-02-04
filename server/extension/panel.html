@@ -187,11 +187,11 @@
             }
         }
 
-        // Bestimme die Basis-URL
+        // Determine base URL
         function determineBaseUrl() {
             if (window.location.hostname.includes('twitch.tv')) {
-                baseUrl = 'https://discounted-careful-distance-obtained.trycloudflare.com';
-                log('Using Twitch URL:', baseUrl);
+                baseUrl = 'https://gamesboard-production.up.railway.app';
+                log('Using production URL:', baseUrl);
             } else {
                 baseUrl = 'https://localhost:8081';
                 log('Using local URL:', baseUrl);
@@ -349,7 +349,7 @@
         }
 
         // Socket.io connection
-        const socket = io('https://localhost:8081', {
+        const socket = io(baseUrl, {
             transports: ['websocket'],
             secure: true,
             rejectUnauthorized: false

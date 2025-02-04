@@ -17,7 +17,8 @@ app.use(cors({
         'https://localhost',
         'https://*.ext-twitch.tv',
         'https://*.twitch.tv',
-        'https://*.railway.app'
+        'https://*.railway.app',
+        'https://gamesboard-production.up.railway.app'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,

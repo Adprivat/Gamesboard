@@ -215,8 +215,17 @@
             });
         });
 
-        // Basis-URL
-        const baseUrl = 'https://localhost:8081';
+        // Determine base URL
+        const baseUrl = window.location.hostname.includes('railway.app')
+            ? 'https://gamesboard-production.up.railway.app'
+            : 'https://localhost:8081';
+
+        // Socket.io connection
+        const socket = io(baseUrl, {
+            transports: ['websocket'],
+            secure: true,
+            rejectUnauthorized: false
+        });
 
         // Spiele laden
         async function loadGames() {
