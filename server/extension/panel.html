@@ -189,12 +189,12 @@
 
         // Determine base URL
         function determineBaseUrl() {
-            if (window.location.hostname.includes('railway.app')) {
+            if (window.location.hostname.includes('ext-twitch.tv')) {
                 baseUrl = 'https://gamesboard-production.up.railway.app';
-                log('Using production URL:', baseUrl);
-            } else if (window.location.hostname.includes('twitch.tv')) {
+                log('Using production URL (Twitch):', baseUrl);
+            } else if (window.location.hostname.includes('railway.app')) {
                 baseUrl = 'https://gamesboard-production.up.railway.app';
-                log('Using production URL:', baseUrl);
+                log('Using production URL (Railway):', baseUrl);
             } else {
                 baseUrl = 'https://localhost:8081';
                 log('Using local URL:', baseUrl);
@@ -248,30 +248,26 @@
         function initializeTwitch() {
             try {
                 log('Initializing Twitch Extension');
-                twitchExt.onAuthorized(function(auth) {
+                window.Twitch.ext.onAuthorized(function(auth) {
                     log('Twitch authorization successful', auth);
                     userId = auth.userId;
+                    // Nach erfolgreicher Autorisierung Spiele laden
+                    determineBaseUrl();
                     loadGames();
                 });
 
-                twitchExt.onError(function(err) {
-                    log('Twitch Extension error (non-critical)', err);
-                    userId = 'test-user-' + Math.random().toString(36).substring(7);
-                    loadGames();
+                window.Twitch.ext.onError(function(err) {
+                    log('Twitch Extension error:', err);
+                    showError('Twitch Extension error: ' + err.message);
                 });
 
-                setTimeout(() => {
-                    if (!userId) {
-                        log('No Twitch authorization after timeout, using test user');
-                        userId = 'test-user-' + Math.random().toString(36).substring(7);
-                        loadGames();
-                    }
-                }, 2000);
+                window.Twitch.ext.onContext(function(context, delta) {
+                    log('Context update received:', context, delta);
+                });
 
             } catch (error) {
-                log('Error during Twitch initialization (using test user)', error);
-                userId = 'test-user-' + Math.random().toString(36).substring(7);
-                loadGames();
+                log('Error during Twitch initialization:', error);
+                showError('Error initializing Twitch Extension: ' + error.message);
             }
         }
 
