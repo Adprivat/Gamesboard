@@ -1,38 +1,26 @@
 {
     "manifest_version": 1,
-    "id": "gamesboard",
     "version": "1.0.0",
+    "id": "gamesboard_local_test",
     "name": "GamesBoard",
-    "description": "Ein interaktives Abstimmungssystem für Spiele",
     "author": "Your Name",
-    "support_email": "your.email@example.com",
-    "viewer_url": "https://localhost:8081/panel.html",
-    "config_url": "https://localhost:8081/config.html",
-    "panel_height": 300,
-    "permissions": [
-        "viewer:read"
-    ],
-    "bits_enabled": false,
-    "anchor": "panel",
-    "can_link_external_content": false,
+    "description": "A voting system for games that allows viewers to vote for their favorite games.",
+    "homepage": "https://github.com/Adprivat/Gamesboard",
+    "support": "https://github.com/Adprivat/Gamesboard/issues",
+    "category": "panel",
+    "panel_height": 500,
+    "capabilities": {
+        "panel": true
+    },
     "views": {
         "panel": {
-            "viewerUrl": "https://localhost:8081/panel.html",
-            "height": 300,
-            "deltaX": 0,
-            "deltaY": 0
+            "viewerUrl": "panel.html",
+            "height": 500,
+            "canLinkExternalContent": false
         },
         "config": {
-            "viewerUrl": "https://localhost:8081/config.html",
-            "height": 300
+            "viewerUrl": "config.html",
+            "canLinkExternalContent": false
         }
-    },
-    "asset_urls": [
-        "https://localhost:8081/icons/icon.svg"
-    ],
-    "icon_urls": {
-        "100x100": "https://localhost:8081/icons/icon-100.png",
-        "24x24": "https://localhost:8081/icons/icon-24.png",
-        "32x32": "https://localhost:8081/icons/icon-32.png"
     }
 } 
